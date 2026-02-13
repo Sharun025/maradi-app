@@ -1,0 +1,279 @@
+// Prisma schema for PostgreSQL
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// User & Auth
+// ---------------------------------------------------------------------------
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  role       String
+  bpCode     String?
+  companyName String?
+  gstNumber  String?
+  panNumber  String?
+  address    String?
+  priceList  String?
+  status     String   @default("active")
+  deviceLimit Int     @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  ordersAsCustomer Order[]     @relation("CustomerOrders")
+  ordersConfirmed  Order[]     @relation("ConfirmedOrders")
+  serialsAdded     Serial[]    @relation("SerialAddedBy")
+  carts            Cart[]
+  notifications    Notification[]
+  auditsConducted  StockAudit[] @relation("AuditConductedBy")
+  auditsApproved   StockAudit[] @relation("AuditApprovedBy")
+
+  @@index([bpCode])
+  @@index([status])
+}
+
+model OtpVerification {
+  id        String   @id @default(cuid())
+  email     String
+  otp       String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  email     String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([email])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Item Catalog
+// ---------------------------------------------------------------------------
+
+model Item {
+  id           String   @id @default(cuid())
+  itemCode     String   @unique
+  itemName     String
+  category     String
+  subcategory  String?
+  hsnCode      String?
+  inventoryType String
+  uom          String
+  masterPrice  Decimal  @db.Decimal(12, 2)
+  aPrice       Decimal? @db.Decimal(12, 2)
+  bPrice       Decimal? @db.Decimal(12, 2)
+  cPrice       Decimal? @db.Decimal(12, 2)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  images     ItemImage[]
+  serials    Serial[]
+  orderItems OrderItem[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model ItemImage {
+  id        String   @id @default(cuid())
+  itemId    String
+  imageType String
+  imageUrl  String
+  isMaster  Boolean  @default(false)
+  uploadedAt DateTime @default(now())
+
+  // Relations
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+}
+
+// ---------------------------------------------------------------------------
+// Serial / Inventory
+// ---------------------------------------------------------------------------
+
+model Serial {
+  id           String    @id @default(cuid())
+  itemId       String
+  serialNumber String
+  batchNumber  String?
+  imageUrl     String?
+  quantity     Int       @default(1)
+  status       String
+  dateAdded    DateTime  @default(now())
+  addedBy      String?
+  soldDate     DateTime?
+  soldTo       String?
+  soldType     String?
+
+  // Relations
+  item                Item               @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  addedByUser          User?              @relation("SerialAddedBy", fields: [addedBy], references: [id])
+  orderItems           OrderItem[]        @relation("SerialOrderItems")
+  replacementOrderItems OrderItem[]        @relation("ReplacementSerial")
+  cartItems            Cart[]
+  auditDiscrepancies   AuditDiscrepancy[]
+
+  @@unique([itemId, serialNumber])
+  @@index([itemId])
+  @@index([status])
+  @@index([batchNumber])
+}
+
+// ---------------------------------------------------------------------------
+// Orders
+// ---------------------------------------------------------------------------
+
+model Order {
+  id                String    @id @default(cuid())
+  orderNumber       String    @unique
+  customerId        String
+  orderDate         DateTime
+  status            String
+  totalAmount       Decimal   @db.Decimal(12, 2)
+  notes             String?
+  sapSONumber       String?
+  sapDeliveryNumber String?
+  sapInvoiceNumber  String?
+  sapPaymentNumber  String?
+  paymentStatus     String?
+  confirmedBy       String?
+  confirmedAt       DateTime?
+
+  // Relations
+  customer   User       @relation("CustomerOrders", fields: [customerId], references: [id])
+  confirmedByUser User?  @relation("ConfirmedOrders", fields: [confirmedBy], references: [id])
+  items      OrderItem[]
+
+  @@index([customerId])
+  @@index([orderDate])
+  @@index([status])
+  @@index([paymentStatus])
+}
+
+model OrderItem {
+  id                 String   @id @default(cuid())
+  orderId            String
+  itemId             String
+  serialId           String?
+  quantity           Int
+  price              Decimal  @db.Decimal(12, 2)
+  status             String
+  replacementSerialId String?
+  notes              String?
+
+  // Relations
+  order             Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item              Item   @relation(fields: [itemId], references: [id])
+  serial            Serial? @relation("SerialOrderItems", fields: [serialId], references: [id])
+  replacementSerial Serial? @relation("ReplacementSerial", fields: [replacementSerialId], references: [id])
+
+  @@index([orderId])
+  @@index([itemId])
+  @@index([serialId])
+}
+
+// ---------------------------------------------------------------------------
+// Cart
+// ---------------------------------------------------------------------------
+
+model Cart {
+  id         String    @id @default(cuid())
+  customerId String
+  serialId   String
+  quantity   Int       @default(1)
+  reservedAt DateTime  @default(now())
+  expiresAt  DateTime?
+
+  // Relations
+  customer User   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  serial  Serial @relation(fields: [serialId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, serialId])
+  @@index([customerId])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Stock Audit
+// ---------------------------------------------------------------------------
+
+model StockAudit {
+  id                 String    @id @default(cuid())
+  auditDate          DateTime
+  conductedBy        String
+  status             String
+  discrepanciesFound Int       @default(0)
+  approvedBy         String?
+  approvedAt         DateTime?
+
+  // Relations
+  conductedByUser User   @relation("AuditConductedBy", fields: [conductedBy], references: [id])
+  approvedByUser  User?  @relation("AuditApprovedBy", fields: [approvedBy], references: [id])
+  discrepancies   AuditDiscrepancy[]
+
+  @@index([auditDate])
+  @@index([status])
+}
+
+model AuditDiscrepancy {
+  id        String  @id @default(cuid())
+  auditId   String
+  serialId  String
+  type      String
+  resolved  Boolean @default(false)
+  notes     String?
+
+  // Relations
+  audit StockAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  serial Serial    @relation(fields: [serialId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
+  @@index([serialId])
+  @@index([resolved])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}

@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Maradi",
+    "slug": "maradi-mobile",
+    "version": "1.0.0",
+    "scheme": "maradi",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.maradi.app"
+    },
+    "android": {
+      "package": "com.maradi.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "plugins": [
+      "expo-router",
+      ["expo-camera", { "cameraPermission": "Allow Maradi to access your camera for scanning QR codes" }],
+      ["expo-image-picker", { "photosPermission": "Allow Maradi to access your photos to attach images" }],
+      "@morrowdigital/watermelondb-expo-plugin",
+      ["expo-build-properties", { "android": { "kotlinVersion": "1.6.10", "packagingOptions": { "pickFirst": ["**/libc++_shared.so"] } } }]
+    ]
+  }
+}

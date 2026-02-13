@@ -1,0 +1,191 @@
+# Maradi B2B Wholesale App - Cursor AI Rules
+
+## Tech Stack
+- TypeScript only (no JavaScript, no 'any' types)
+- Mobile: Expo (React Native) with Expo Router
+- Web: Next.js 14 App Router
+- Database: Prisma ORM with PostgreSQL
+- State: Zustand
+- UI Web: Tailwind CSS + shadcn/ui
+- UI Mobile: NativeWind (Tailwind for React Native)
+
+## Code Style
+- Functional components with hooks only
+- Arrow functions everywhere
+- async/await (no .then())
+- Named exports (avoid default exports except pages)
+- Destructure props and state
+- Early returns for error handling
+
+## File Naming
+- Components: PascalCase.tsx (OrderCard.tsx)
+- Utils/Hooks: camelCase.ts (useCart.ts, formatDate.ts)
+- Constants: UPPER_SNAKE_CASE.ts (API_ROUTES.ts)
+- Types: camelCase.types.ts (order.types.ts)
+
+## Folder Structure
+```
+apps/
+  mobile/          # Expo app
+    app/           # Expo Router pages
+    components/    # Reusable components
+    store/         # Zustand stores
+    utils/         # Utility functions
+  web/             # Next.js app
+    app/           # App Router pages
+    components/    # Reusable components
+    lib/           # Utilities
+packages/
+  database/        # Prisma schema
+  shared/          # Shared types & utils
+```
+
+## Component Structure
+```typescript
+// 1. Imports
+import { useState } from 'react'
+import type { OrderType } from '@/types'
+
+// 2. Types/Interfaces
+interface Props {
+  orderId: string
+  onConfirm: () => void
+}
+
+// 3. Component
+export function OrderCard({ orderId, onConfirm }: Props) {
+  // State
+  const [loading, setLoading] = useState(false)
+  
+  // Hooks
+  const { data, error } = useOrder(orderId)
+  
+  // Handlers
+  const handleConfirm = async () => {
+    setLoading(true)
+    await onConfirm()
+    setLoading(false)
+  }
+  
+  // Early returns
+  if (error) return <ErrorState />
+  if (!data) return <LoadingSkeleton />
+  
+  // Render
+  return (
+    <div>
+      {/* JSX */}
+    </div>
+  )
+}
+```
+
+## API Routes (Next.js)
+```typescript
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+
+export async function GET(req: NextRequest) {
+  try {
+    // Logic
+    const data = await prisma.item.findMany()
+    
+    return NextResponse.json({ 
+      success: true, 
+      data 
+    })
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Error message' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+## Database (Prisma)
+- Use transactions for multi-table operations
+- Always include error handling
+- Use proper relations (include, select)
+- Add indexes on frequently queried fields
+- Use meaningful field names (createdAt, not created_at)
+
+## Mobile Specific
+- Use FlatList for lists (never map large arrays)
+- Optimize images before upload (max 1200px width)
+- Handle offline gracefully
+- Show loading indicators for all async operations
+- Add pull-to-refresh where appropriate
+- Use expo-camera for QR scanning
+- Use expo-image-picker for image selection
+
+## Security
+- Never log sensitive data (passwords, tokens)
+- Validate all inputs (use Zod)
+- Use JWT for authentication
+- Hash passwords with bcrypt
+- Parameterized queries only (Prisma handles this)
+- Rate limit sensitive endpoints
+
+## Error Handling
+```typescript
+try {
+  await riskyOperation()
+} catch (error) {
+  console.error('Operation failed:', error)
+  // Show user-friendly message
+  toast.error('Something went wrong')
+}
+```
+
+## TypeScript Rules
+- Explicit return types for functions
+- No 'any' - use 'unknown' if needed
+- Interface for object shapes, Type for unions
+- Use generics for reusable components
+- Proper null checks (optional chaining)
+
+## Comments
+- JSDoc for complex functions
+- Inline comments for non-obvious logic
+- No comments for obvious code
+- TODO comments with ticket numbers
+
+## Imports Order
+1. React/External libraries
+2. Internal components
+3. Utils/Hooks
+4. Types
+5. Styles (if separate)
+
+## Response Format
+- API: `{ success: boolean, data?: T, error?: string }`
+- Forms: Use react-hook-form + Zod validation
+- Loading: Show skeleton/spinner, not blank screen
+- Errors: Toast notifications for user errors
+
+## Performance
+- Memoize expensive calculations (useMemo)
+- Memoize callbacks (useCallback)
+- Lazy load heavy components
+- Optimize images (WebP format)
+- Use React.memo for pure components
+- Debounce search inputs
+
+## Business Logic
+- Items: 4 categories (Sarees, Dothis, Fabrics, Accessories)
+- Inventory: Serial (Zari Silk), Batch (Fabrics), None (others)
+- QR Format: Item Code (FG-D00063-X1S1CI), Serial (E4583, D1234, F1234)
+- Cart: 15-min reservation per item
+- Prices: Master, A, B, C (customer-specific)
+- Orders: Status flow (Pending → Confirmed → Processing → Dispatched → Delivered → Completed)
+
+## When Generating Code
+1. Add TypeScript types first
+2. Include error handling
+3. Add loading states for async
+4. Follow existing patterns in codebase
+5. Make components reusable
+6. Add proper validation
+7. Include meaningful variable names
+8. Test edge cases in comments
