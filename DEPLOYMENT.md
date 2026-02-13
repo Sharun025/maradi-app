@@ -39,16 +39,16 @@ git push -u origin main
 2. Click **Import** next to your `maradi-app` repo (after it’s pushed to GitHub)
 3. Or use **Import Git Repository** and select the repository
 
-### Project settings (auto-detected for Turborepo)
+### Project settings
 
-Vercel should detect the Turborepo setup and set:
+In **Project Settings → General** set:
 
-- **Root Directory:** `.` (repo root) — **must be repo root** so workspace deps (@repo/database, etc.) resolve
-- **Framework:** Next.js
-- **Build Command:** `npx turbo run build --filter=...web` (the `...web` ensures dependencies are built first)
+- **Root Directory:** `apps/web` — Required so Vercel finds the Next.js output (.next) and public folder
+- **Framework Preset:** Next.js
+- **Output Directory:** Leave empty (Next.js auto-detects)
+- **Build & Install:** The `apps/web/vercel.json` overrides these to run from monorepo root so @repo/database etc. build correctly
 
-**If you see "Can't resolve '@repo/database'":** Go to **Project Settings → General → Root Directory** and set it to **`.`** (or leave empty). Do not set it to `apps/web`.
-- **Output Directory:** (auto-detected from Next.js)
+**If you see "No Output Directory named 'public'":** Set Root Directory to `apps/web` (not repo root).
 
 ### Environment variables
 
