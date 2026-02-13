@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@repo/database";
 import { hashPassword } from "@/lib/auth";
 import { ok, badRequest, unauthorized } from "@/lib/api-response";
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
       where: { email: resetRecord.email },
     });
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (existingUser) {
         await tx.user.update({
           where: { email: resetRecord.email },
