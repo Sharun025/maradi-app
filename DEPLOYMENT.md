@@ -43,9 +43,11 @@ git push -u origin main
 
 Vercel should detect the Turborepo setup and set:
 
-- **Root Directory:** `.` (repo root)
+- **Root Directory:** `.` (repo root) — **must be repo root** so workspace deps (@repo/database, etc.) resolve
 - **Framework:** Next.js
-- **Build Command:** `npx turbo run build --filter=web`
+- **Build Command:** `npx turbo run build --filter=...web` (the `...web` ensures dependencies are built first)
+
+**If you see "Can't resolve '@repo/database'":** Go to **Project Settings → General → Root Directory** and set it to **`.`** (or leave empty). Do not set it to `apps/web`.
 - **Output Directory:** (auto-detected from Next.js)
 
 ### Environment variables

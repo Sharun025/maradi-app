@@ -1,4 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npx turbo run build --filter=web"
+  "buildCommand": "npx turbo run build --filter=...web"
 }
