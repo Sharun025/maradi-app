@@ -31,11 +31,24 @@
       "persistent": true
     },
     "@repo/database#build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
       "env": [
         "DATABASE_URL"
       ]
     },
     "web#build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ],
       "env": [
         "DATABASE_URL",
         "JWT_SECRET",
